@@ -38,9 +38,6 @@ python3 "$MYDIR/make_ic_files.py" \
     "$DENSITY" \
     "$TEMP" \
     "$MU" \
-    "$BZ" \
-    "$DTG" \
-    "$GFRAC" \
-    "$NFAM"
+    "$BZ"
 
 echo "IC generation complete."
