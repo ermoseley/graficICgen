@@ -36,9 +36,6 @@ if __name__ == '__main__':
     T = float(sys.argv[4])         # temperature (K)
     mu = float(sys.argv[5])        # mean molecular weight (MCs)
     Bz = float(sys.argv[6])        # magnetic field strength (code units)
-    dtg = float(sys.argv[7])       # dust-to-gas mass ratio
-    gfrac = float(sys.argv[8])     # decades between smallest & largest grain size
-    nfam = float(sys.argv[9])      # number of dust families (N^3 groups)
 
     print(lvl_max, size_cu, density, T, mu, Bz)
 
