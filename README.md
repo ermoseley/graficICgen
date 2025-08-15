@@ -7,6 +7,8 @@ It should be fairly clear how to use the code. By default, if you simply write (
 ./generateIC 8
 
 you'll generate initial conditions for a uniform box with a resolution of 2^8 = 256^3. 
+By default (though this can be changed), it will be in a folder in the directory you ran the script in:
+./ic_dturb/ic_dturb_8
 
 Within generateIC, you can also specify the magnetic field strength. As well, if you want to modify the densities, velocities, etc.,
 you can go into generate.py and make your own custom version of it. As it stands, the code just generates uniform ICs. 
