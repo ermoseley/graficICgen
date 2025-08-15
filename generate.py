@@ -59,6 +59,10 @@ if __name__ == '__main__':
     alf_mach = v_alf / c_s
 
     # Write magnetic field components (left/right boundaries)
+    # If you need non-uniform ICs, use write_array after generating the array
+    # e.g.:
+    # zeros = np.zeros((res1D, res1D, res1D), dtype='f4')
+    # write_array('ic_u', zeros, size)
     write_uniform_field('ic_bxleft',  Bx, (res1D, res1D, res1D), size)
     write_uniform_field('ic_bxright', Bx, (res1D, res1D, res1D), size)
     write_uniform_field('ic_byleft',  By, (res1D, res1D, res1D), size)
@@ -66,16 +70,14 @@ if __name__ == '__main__':
     write_uniform_field('ic_bzleft',  Bz, (res1D, res1D, res1D), size)
     write_uniform_field('ic_bzright', Bz, (res1D, res1D, res1D), size)
 
-    # Write velocities
-    zeros = np.zeros((res1D, res1D, res1D), dtype='f4')
-    write_array('ic_u', zeros, size)
-    write_array('ic_v', zeros, size)
-    write_array('ic_w', zeros, size)
+    # Write velocities. 
+    write_uniform_field('ic_u', 0.0, (res1D, res1D, res1D), size)
+    write_uniform_field('ic_v', 0.0, (res1D, res1D, res1D), size)
+    write_uniform_field('ic_w', 0.0, (res1D, res1D, res1D), size)
 
     # Write densities & pressures
-    ones = np.ones((res1D, res1D, res1D), dtype='f4')
-    write_array('ic_d', ones, size)
-    write_array('ic_p', ones, size)
+    write_uniform_field('ic_p', 1.0, (res1D, res1D, res1D), size)
+    write_uniform_field('ic_d', 1.0, (res1D, res1D, res1D), size)
 
     # Particle IDs (integer, random permutation)
     ids = np.arange(1, res1D**3 + 1, dtype=np.int64)
@@ -84,9 +86,9 @@ if __name__ == '__main__':
     write_array('ic_particle_ids', ids, size, int_output=True)
 
     # Particle velocities
-    write_array('ic_velcx', zeros, size)
-    write_array('ic_velcy', zeros, size)
-    write_array('ic_velcz', zeros, size)
+    write_uniform_field('ic_velcx', 0.0, (res1D, res1D, res1D), size)
+    write_uniform_field('ic_velcy', 0.0, (res1D, res1D, res1D), size)
+    write_uniform_field('ic_velcz', 0.0, (res1D, res1D, res1D), size)
 
     # Optional: particle masses
     # mconstant = dtg * np.log(10.0) * gfrac / (2.0 * nfam * (10.0**(0.5 * gfrac) - 1.0))
