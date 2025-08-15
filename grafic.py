@@ -68,3 +68,33 @@ class Grafic:
         self._write_header(tmpfile)
         self._write_data(tmpfile, np.int64)
         os.rename(tmpfile, output_name)
+
+    def read(self, filename, dtype=np.float32):
+        """
+        Read a Grafic-format unformatted Fortran binary file.
+        """
+        with open(filename, "rb") as f:
+            # Read header record
+            header_len = struct.unpack("i", f.read(4))[0]
+            header_values = struct.unpack("3i8f", f.read(header_len))
+            f.read(4)  # trailing length
+
+            self.header = {
+                "n1": header_values[0],
+                "n2": header_values[1],
+                "n3": header_values[2],
+                "dx": header_values[3],
+                "xoff1": header_values[4],
+                "xoff2": header_values[5],
+                "xoff3": header_values[6],
+                "f1": header_values[7],
+                "f2": header_values[8],
+                "f3": header_values[9],
+                "f4": header_values[10],
+            }
+
+            # Read data record
+            data_len = struct.unpack("i", f.read(4))[0]
+            n1, n2, n3 = self.header["n1"], self.header["n2"], self.header["n3"]
+            self.data = np.frombuffer(f.read(data_len), dtype=dtype).reshape((n1, n2, n3))
+            f.read(4)  # trailing length
