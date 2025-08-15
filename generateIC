@@ -14,13 +14,8 @@ LVL_MAX=$1
 # --- Parameters ---
 NAME="dturb"
 SIZE_CU=1.0           # box size in code units
-TEMP=30               # temperature (K)
-MU=1.49               # mean molecular weight
-DENSITY=7.0e-23       # fixed density (g/cm^3)
-DTG=0.01              # dust-to-gas mass ratio
-GFRAC=1.5             # decades from smallest to largest grain
-NFAM=8                # number of dust families
-BZ=1.0                # magnetic field strength in Gauss
+SIZE_PH=3.086e18      # box size in cm
+BZ=1.0                # magnetic field strength in code units
 
 # --- Paths ---
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
@@ -35,9 +30,7 @@ echo "Generating ICs in $IC_DIR..."
 python3 "$MYDIR/generate.py" \
     "$LVL_MAX" \
     "$SIZE_CU" \
-    "$DENSITY" \
-    "$TEMP" \
-    "$MU" \
+    "$SIZE_PH" \
     "$BZ"
 
 echo "IC generation complete."
