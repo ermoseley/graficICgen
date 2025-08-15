@@ -202,15 +202,16 @@ class Grafic:
                       f"Cannot infer dtype/layout: first record len {first_len} not matching grid."
                   )
           else:
-              base_dtype = np.dtype(dtype).type
-              itemsize = np.dtype(dtype).itemsize
+              dt = np.dtype(dtype)
+              base_dtype = dt.type
+              itemsize = dt.itemsize
               if first_len == n1 * n2 * itemsize:
                   layout = "sliced"
               elif first_len == n1 * n2 * n3 * itemsize:
                   layout = "single"
               else:
                   raise ValueError(
-                      f"Record length {first_len} inconsistent with dtype {np.dtype(dtype)} and grid ({n1},{n2},{n3})."
+                      f"Record length {first_len} inconsistent with dtype {dt} and grid ({n1},{n2},{n3})."
                   )
   
           dtype_file = np.dtype(base_dtype).newbyteorder(self.endian)
@@ -230,7 +231,7 @@ class Grafic:
                   slices[k] = np.frombuffer(rec_bytes, dtype=dtype_file).reshape((n1, n2), order="F")
               arr = np.transpose(slices, (1, 2, 0))
   
-          self.data = arr
+      self.data = arr
   
   def read_header_only(self, filename):
       """
@@ -238,6 +239,9 @@ class Grafic:
       """
       with open(filename, "rb") as f:
           head_bytes, _ = self._read_fortran_record(f)
-          n1, n2, n3, dx, x1, x2, x3, f1, f2, f3, f4 = struct.unpack(self._head_fmt, head_bytes)
+          try:
+              n1, n2, n3, dx, x1, x2, x3, f1, f2, f3, f4 = struct.unpack(self._head_fmt, head_bytes)
+          except struct.error as e:
+              raise ValueError(f"Header unpack failed: {e}")
           self.header = [n1, n2, n3, dx, x1, x2, x3, f1, f2, f3, f4]
       return self.header
