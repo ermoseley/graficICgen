@@ -6,7 +6,7 @@ f2py compilation or anything like that; everything's just in python.
 It should be fairly clear how to use the code. By default, if you simply write (e.g.):
 ./generateIC 8
 
-you'll generate initial conditions for a uniform box with a resolution of 2^8 = 256^3. 
+you'll generate initial conditions for a uniform box with a resolution of (2^8)^3 = 256^3. 
 By default (though this can be changed), it will be in a folder in the directory you ran the script in:
 ./ic_dturb/ic_dturb_8
 
