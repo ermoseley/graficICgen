@@ -152,91 +152,97 @@ class Grafic:
       self.write(output_name, dtype_out=np.int64, layout=layout)
   
   def read(self, filename, dtype=None):
-      """
-      Read a GRAFIC file (both 'sliced' and 'single' layouts supported).
-  
-      dtype:
-        - None: infer from first data record size.
-                 4 bytes/elem -> float32 (default assumption for 4-byte ambiguity)
-                 8 bytes/elem -> int64
-        - Or explicitly set, e.g., np.float32, np.int32, np.int64.
-  
-      The file is assumed to use the instance's endianness setting.
-      """
-      with open(filename, "rb") as f:
-          # Header
-          head_bytes, hlen = self._read_fortran_record(f)
-          try:
-              n1, n2, n3, dx, x1, x2, x3, f1, f2, f3, f4 = struct.unpack(self._head_fmt, head_bytes)
-          except struct.error as e:
-              raise ValueError(f"Header unpack failed: {e}")
-          self.header = [n1, n2, n3, dx, x1, x2, x3, f1, f2, f3, f4]
-  
-          # Peek first data record
-          first_bytes, first_len = self._read_fortran_record(f)
-  
-          # Infer dtype and layout if needed
-          itemsize = None
-          layout = None
-  
-          def try_match(elem_bytes):
-              nonlocal itemsize, layout
-              if first_len == n1 * n2 * elem_bytes:
-                  itemsize = elem_bytes
-                  layout = "sliced"
-                  return True
-              if first_len == n1 * n2 * n3 * elem_bytes:
-                  itemsize = elem_bytes
-                  layout = "single"
-                  return True
-              return False
-  
-          if dtype is None:
-              if try_match(4):
-                  # Ambiguous between float32 and int32; default to float32
-                  base_dtype = np.float32
-              elif try_match(8):
-                  base_dtype = np.int64
-              else:
-                  raise ValueError(
-                      f"Cannot infer dtype/layout: first record len {first_len} not matching grid."
-                  )
-          else:
-              dt = np.dtype(dtype)
-              base_dtype = dt.type
-              itemsize = dt.itemsize
-              if first_len == n1 * n2 * itemsize:
-                  layout = "sliced"
-              elif first_len == n1 * n2 * n3 * itemsize:
-                  layout = "single"
-              else:
-                  raise ValueError(
-                      f"Record length {first_len} inconsistent with dtype {dt} and grid ({n1},{n2},{n3})."
-                  )
-  
-          dtype_file = np.dtype(base_dtype).newbyteorder(self.endian)
-          dtype_native = np.dtype(base_dtype).newbyteorder('=')
-  
-          if layout == "single":
-              arrF = np.frombuffer(first_bytes, dtype=dtype_file).reshape((n1, n2, n3), order="F")
-              arr = arrF.astype(dtype_native, copy=False)
-          else:
-              # Sliced: we already have slice 0 bytes
-              slices = np.empty((n3, n1, n2), dtype=dtype_native)
-              slices[0] = np.frombuffer(first_bytes, dtype=dtype_file).reshape((n1, n2), order="F")
-              for k in range(1, n3):
-                  rec_bytes, rec_len = self._read_fortran_record(f)
-                  if rec_len != first_len:
-                      raise ValueError(f"Inconsistent slice record length at k={k}")
-                  slices[k] = np.frombuffer(rec_bytes, dtype=dtype_file).reshape((n1, n2), order="F")
-              arr = np.transpose(slices, (1, 2, 0))
-  
-      self.data = arr
-  
+    """
+    Read a GRAFIC file (supports both 'sliced' and 'single' layouts).
+
+    dtype:
+      - None: infer from first data record size.
+               4 bytes/elem -> float32 (ambiguous int32/float32; default to float32)
+               8 bytes/elem -> int64
+      - Or explicitly set, e.g., np.float32, np.int32, np.int64.
+
+    Uses the instance's endianness (self.endian: '<' or '>') and header fmt (self._head_fmt).
+    Requires self._read_fortran_record to be defined: returns (bytes, length).
+    """
+    import struct
+    import numpy as np
+
+    with open(filename, "rb") as f:
+        # Header
+        head_bytes, _ = self._read_fortran_record(f)
+        try:
+            n1, n2, n3, dx, x1, x2, x3, f1, f2, f3, f4 = struct.unpack(self._head_fmt, head_bytes)
+        except struct.error as e:
+            raise ValueError(f"Header unpack failed: {e}")
+        self.header = [n1, n2, n3, dx, x1, x2, x3, f1, f2, f3, f4]
+
+        # Peek first data record
+        first_bytes, first_len = self._read_fortran_record(f)
+
+        # Infer dtype and layout if needed
+        layout = None
+
+        def match_len(elem_bytes):
+            if first_len == n1 * n2 * elem_bytes:
+                return "sliced"
+            if first_len == n1 * n2 * n3 * elem_bytes:
+                return "single"
+            return None
+
+        if dtype is None:
+            # Try 8-byte elements first (int64), then 4-byte (float32 default).
+            layout = match_len(8)
+            if layout is not None:
+                base_dtype = np.int64
+                itemsize = 8
+            else:
+                layout = match_len(4)
+                if layout is not None:
+                    base_dtype = np.float32  # default for 4-byte ambiguity
+                    itemsize = 4
+                else:
+                    raise ValueError(
+                        f"Cannot infer dtype/layout: first record len {first_len} "
+                        f"not matching grid ({n1},{n2},{n3})."
+                    )
+        else:
+            dt = np.dtype(dtype)
+            base_dtype = dt.type
+            itemsize = dt.itemsize
+            layout = match_len(itemsize)
+            if layout is None:
+                raise ValueError(
+                    f"Record length {first_len} inconsistent with dtype {dt} and grid ({n1},{n2},{n3})."
+                )
+
+        dtype_file = np.dtype(base_dtype).newbyteorder(self.endian)
+        dtype_native = np.dtype(base_dtype).newbyteorder('=')
+
+        if layout == "single":
+            arrF = np.frombuffer(first_bytes, dtype=dtype_file).reshape((n1, n2, n3), order="F")
+            arr = arrF.astype(dtype_native, copy=False)
+        else:
+            # Sliced: first record is one (n1, n2) slab in Fortran order
+            slab0 = np.frombuffer(first_bytes, dtype=dtype_file).reshape((n1, n2), order="F")
+            # Allocate native-endian output (n1, n2, n3)
+            arr = np.empty((n1, n2, n3), dtype=dtype_native)
+            arr[:, :, 0] = slab0.astype(dtype_native, copy=False)
+            for k in range(1, n3):
+                rec_bytes, rec_len = self._read_fortran_record(f)
+                if rec_len != first_len:
+                    raise ValueError(f"Inconsistent slice record length at k={k}: {rec_len} != {first_len}")
+                slab = np.frombuffer(rec_bytes, dtype=dtype_file).reshape((n1, n2), order="F")
+                arr[:, :, k] = slab.astype(dtype_native, copy=False)
+
+    self.data = arr
+    return arr
+    
   def read_header_only(self, filename):
       """
-      Read only the header; leaves the file positioned after the first record.
+      Read only the header of a GRAFIC file.
       """
+      import struct
+  
       with open(filename, "rb") as f:
           head_bytes, _ = self._read_fortran_record(f)
           try:
