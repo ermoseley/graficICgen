@@ -11,9 +11,9 @@ def write_uniform_field(filename, value, shape, size, dtype='f4', int_output=Fal
     field.data = np.full(shape, value, dtype=dtype)
     field.make_header(size)
     if int_output:
-        field.write_int(filename)
+        field.write_int64(filename)
     else:
-        field.write(filename)
+        field.write_float(filename)
 
 
 def write_array(filename, array, size, int_output=False):
@@ -22,9 +22,9 @@ def write_array(filename, array, size, int_output=False):
     field.data = array
     field.make_header(size)
     if int_output:
-        field.write_int(filename)
+        field.write_int64(filename)
     else:
-        field.write(filename)
+        field.write_float(filename)
 
 
 if __name__ == '__main__':
