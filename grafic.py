@@ -69,32 +69,100 @@ class Grafic:
         self._write_data(tmpfile, np.int64)
         os.rename(tmpfile, output_name)
 
-    def read(self, filename, dtype=np.float32):
+    def read(self, filename, dtype=None):
         """
-        Read a Grafic-format unformatted Fortran binary file.
+        Read a GRAFIC file written with Fortran unformatted sequential I/O.
+
+        Handles both layouts:
+          (A) header + [n3 records of (n1 x n2)]  (what our writer does)
+          (B) header + [1 record of (n1 x n2 x n3)]  (classic single-chunk)
+
+        Parameters
+        ----------
+        filename : str
+        dtype : np.dtype or None
+            If None, infer from first data record size:
+              4 bytes/elem -> float32 (or int32)
+              8 bytes/elem -> int64
+            You can override (e.g., dtype=np.float32) if needed.
+
+        After return:
+          self.header = [n1,n2,n3,dx,xoff1,xoff2,xoff3,f1,f2,f3,f4]
+          self.data   = ndarray shape (n1,n2,n3)
         """
+        def _read_record(fh):
+            n = struct.unpack("i", fh.read(4))[0]
+            payload = fh.read(n)
+            n2 = struct.unpack("i", fh.read(4))[0]
+            if n2 != n:
+                raise IOError("Fortran record marker mismatch")
+            return payload, n
+
         with open(filename, "rb") as f:
-            # Read header record
-            header_len = struct.unpack("i", f.read(4))[0]
-            header_values = struct.unpack("3i8f", f.read(header_len))
-            f.read(4)  # trailing length
+            # --- Header ---
+            head_bytes, hlen = _read_record(f)
+            # 3 * int32 + 8 * float32
+            n1, n2, n3, dx, x1, x2, x3, f1, f2, f3, f4 = struct.unpack("3i8f", head_bytes)
+            self.header = [n1, n2, n3, dx, x1, x2, x3, f1, f2, f3, f4]
 
-            self.header = {
-                "n1": header_values[0],
-                "n2": header_values[1],
-                "n3": header_values[2],
-                "dx": header_values[3],
-                "xoff1": header_values[4],
-                "xoff2": header_values[5],
-                "xoff3": header_values[6],
-                "f1": header_values[7],
-                "f2": header_values[8],
-                "f3": header_values[9],
-                "f4": header_values[10],
-            }
+            # --- First data record (peek) ---
+            first_bytes, first_len = _read_record(f)
 
-            # Read data record
-            data_len = struct.unpack("i", f.read(4))[0]
-            n1, n2, n3 = self.header["n1"], self.header["n2"], self.header["n3"]
-            self.data = np.frombuffer(f.read(data_len), dtype=dtype).reshape((n1, n2, n3))
-            f.read(4)  # trailing length
+            # Infer dtype / layout if not provided
+            if dtype is None:
+                # Try per-slice record first
+                if first_len == n1 * n2 * 4:
+                    inferred = np.float32
+                    layout = "sliced"
+                    itemsize = 4
+                elif first_len == n1 * n2 * 8:
+                    inferred = np.int64
+                    layout = "sliced"
+                    itemsize = 8
+                # Try single-chunk record
+                elif first_len == n1 * n2 * n3 * 4:
+                    inferred = np.float32
+                    layout = "single"
+                    itemsize = 4
+                elif first_len == n1 * n2 * n3 * 8:
+                    inferred = np.int64
+                    layout = "single"
+                    itemsize = 8
+                else:
+                    raise ValueError(
+                        f"Cannot infer dtype/layout: record_len={first_len}, "
+                        f"expected one of {{n1*n2*{4,8}, n1*n2*n3*{4,8}}}"
+                    )
+                dtype = inferred
+            else:
+                itemsize = np.dtype(dtype).itemsize
+                if first_len == n1 * n2 * itemsize:
+                    layout = "sliced"
+                elif first_len == n1 * n2 * n3 * itemsize:
+                    layout = "single"
+                else:
+                    raise ValueError(
+                        f"Record length {first_len} not consistent with dtype {dtype} "
+                        f"and grid ({n1},{n2},{n3})."
+                    )
+
+            if layout == "single":
+                # Whole 3D array in one record, Fortran order on disk
+                arr = np.frombuffer(first_bytes, dtype=dtype)
+                self.data = arr.reshape((n1, n2, n3), order="F")
+            else:
+                # n3 slices, each (n1 x n2) in Fortran order
+                slices = np.empty((n3, n1, n2), dtype=dtype)
+
+                # first slice from the bytes we already read
+                slices[0] = np.frombuffer(first_bytes, dtype=dtype).reshape((n1, n2), order="F")
+
+                # remaining slices
+                for k in range(1, n3):
+                    rec_bytes, rec_len = _read_record(f)
+                    if rec_len != first_len:
+                        raise ValueError(f"Inconsistent slice record length at k={k}")
+                    slices[k] = np.frombuffer(rec_bytes, dtype=dtype).reshape((n1, n2), order="F")
+
+                # Reassemble to (n1, n2, n3)
+                self.data = np.transpose(slices, (1, 2, 0))
