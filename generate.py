@@ -1,9 +1,6 @@
 import sys
 import numpy as np
 import grafic
-from my_units import *
-from formulas import *
-
 
 def write_uniform_field(filename, value, shape, size, dtype='f4', int_output=False):
     """Write a uniform 3D field to file."""
@@ -32,31 +29,16 @@ if __name__ == '__main__':
     # Arguments
     lvl_max = int(sys.argv[1])     # refinement level
     size_cu = float(sys.argv[2])   # size of the box (in code units)
-    density = float(sys.argv[3])   # density (in Msun)
-    T = float(sys.argv[4])         # temperature (K)
-    mu = float(sys.argv[5])        # mean molecular weight (MCs)
-    Bz = float(sys.argv[6])        # magnetic field strength (code units)
+    size_ph = float(sys.argv[3])   # size of the box (in physical units)
+    Bz = float(sys.argv[4])        # magnetic field strength (code units)
 
-    print(lvl_max, size_cu, density, T, mu, Bz)
-
-    # Physical setup
-    size = size_cu * scale_l       # cm
-    mass = density * size**3       # grams
-    c_s = sound_speed(T, mu, units_cgs)  # cm/s
+    print(lvl_max, size_cu, size_ph, Bz)
+    size = size_ph
     res1D = 2**lvl_max
-
-    # Derived scales
-    scale_t = scale_l / c_s
-    scale_d = 7.0e-23
-    scale_v = c_s
-    scale_m = scale_d * scale_l**3
 
     # Magnetic field
     Bx = 0.0
     By = 0.0
-    mu0 = 4.0 * np.pi  # in cgs
-    v_alf = Bz / np.sqrt(mu0 * density)
-    alf_mach = v_alf / c_s
 
     # Write magnetic field components (left/right boundaries)
     # If you need non-uniform ICs, use write_array after generating the array
@@ -95,14 +77,4 @@ if __name__ == '__main__':
     # masses = mconstant * 10.0**(gfrac * ids / (nfam * res1D**3))
     # write_array('ic_massc', masses, size)
 
-    # Info file
-    with open("../PARAMS_mhd.txt", 'w') as f:
-        f.write(
-            f"INPUT params\n"
-            f"magnetic field strength Bx: {Bx} Gauss\n"
-            f"magnetic field strength By: {By} Gauss\n"
-            f"magnetic field strength Bz: {Bz} Gauss\n"
-            f"alfven speed: {v_alf} cm/s\n"
-            f"alfvenic mach number: {alf_mach}\n"
-            f"sound speed: {c_s} cm/s\n"
-        )
+
