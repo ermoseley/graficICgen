@@ -11,4 +11,12 @@ you'll generate initial conditions for a uniform box with a resolution of 2^8 = 
 Within generateIC, you can also specify the magnetic field strength. As well, if you want to modify the densities, velocities, etc.,
 you can go into generate.py and make your own custom version of it. As it stands, the code just generates uniform ICs. 
 
+You can test that the code works properly by using pip to install pytest (if you haven't already):
+pip install pytest
+
+Then you test the code within the repository folder with:
+pytest -q
+
+Hopefully, it passes the 11 tests!
+
 Happy IC generation!
