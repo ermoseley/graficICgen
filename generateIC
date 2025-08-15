@@ -14,7 +14,7 @@ LVL_MAX=$1
 # --- Parameters ---
 NAME="dturb"
 SIZE_CU=1.0           # box size in code units
-SIZE_PH=1.0           # box size in cm
+SIZE_PH=3.086e18      # box size in cm
 BZ=1.0                # magnetic field strength in code units
 
 # --- Paths ---
