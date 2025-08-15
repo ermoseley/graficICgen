@@ -29,7 +29,7 @@ if __name__ == '__main__':
     # Arguments
     lvl_max = int(sys.argv[1])     # refinement level
     size_cu = float(sys.argv[2])   # size of the box (in code units)
-    size_ph = float(sys.argv[3])   # size of the box (in physical units)
+    size_ph = float(sys.argv[3])   # size of the box (in cm)
     Bz = float(sys.argv[4])        # magnetic field strength (code units)
 
     print(lvl_max, size_cu, size_ph, Bz)
