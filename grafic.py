@@ -50,6 +50,7 @@ class Grafic:
       dx = float(box_size_cu) / n1
       x1, x2, x3 = map(float, offsets)
       f1, f2, f3, f4 = map(float, extras)
+      f1 = float(box_size_cu)
       self.header = [np.int32(n1), np.int32(n2), np.int32(n3),
                      np.float32(dx), np.float32(x1), np.float32(x2), np.float32(x3),
                      np.float32(f1), np.float32(f2), np.float32(f3), np.float32(f4)]
