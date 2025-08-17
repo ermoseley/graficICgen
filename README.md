@@ -1,4 +1,5 @@
 This is the github repository for my new grafic IC generation scripts.
+(Yes, I know that "grafic IC" is like saying ATM machine.)
 I grew quite tired of using MUSIC for something that didn't need it, 
 so I rewrote it all as just python scripts. Now, there's no need to deal with
 f2py compilation or anything like that; everything's just in python. 
