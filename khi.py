@@ -1,4 +1,28 @@
 #!/usr/bin/env python3
+"""
+Kelvin–Helmholtz (KHI) initial condition generator for mini-ramses in GRAFIC format.
+
+This script writes unformatted Fortran records compatible with the mini-ramses
+"grafic" file reader. It supports both 3D and 2D outputs.
+
+Usage examples:
+
+  - 3D (n = 2^6 = 64):
+      python3 khi.py 6 --size 1.0 --ndim 3 \
+        --outdir /Users/moseley/ramses-development/mini-ramses-main/ics/ic_khi/ic_khi_6
+
+  - 2D (writes (n, n, 1) arrays):
+      python3 khi.py 6 --size 1.0 --ndim 2 \
+        --outdir /Users/moseley/ramses-development/mini-ramses-main/ics/ic_khi/ic_khi_6_d2
+
+Important details:
+  - Output files: ic_d, ic_u, ic_v, ic_w, ic_p (and optional magnetic boundaries
+    if you extend this script).
+  - Header encodes [n1, n2, n3, dx, ...] with dx = size / n1. For 2D, n3 = 1
+    and data are still written as a sequence of z-slices.
+  - Pressure and other fields must be written as full 3D arrays to ensure each
+    slice record has the correct length; do not write (1, n, 1) views.
+"""
 import argparse
 import os
 from pathlib import Path
@@ -9,6 +33,13 @@ import grafic
 
 
 def write_array(filename: str, array: np.ndarray, box_size_cu: float) -> None:
+    """Write a 3D numpy array to a GRAFIC file.
+
+    Args:
+        filename: Destination filename (created/overwritten).
+        array: 3D array shaped (n1, n2, n3). For 2D output, use n3=1.
+        box_size_cu: Physical box size in code units used to set dx in header.
+    """
     g = grafic.Grafic()
     g.set_data(np.asarray(array))
     g.make_header(box_size_cu)
@@ -29,11 +60,34 @@ def generate_kh_fields(
     random_seed: int | None = 42,
     ndim: int = 3,
 ):
+    """Generate smoothed KHI hydro primitives.
+
+    Produces density, velocity components (u, v, w) and pressure arrays with a
+    tanh shear in y and a small vy sinusoidal perturbation localized near two
+    interfaces.
+
+    Args:
+        lvl_max: Refinement level; linear resolution n = 2**lvl_max.
+        box_size_cu: Domain size in code units.
+        u0: Velocity jump magnitude between layers.
+        shear_thickness: Half-thickness of the shear transition (fraction of box).
+        density_outer: Density in outer slabs (top/bottom).
+        density_inner: Density in inner slab (middle region).
+        pressure0: Pressure in outer slabs.
+        pressure_inner: Pressure in inner slab.
+        perturb_eps: Amplitude of vy perturbation.
+        perturb_sigma: Gaussian width of perturbation (fraction of box).
+        random_seed: RNG seed for any randomized content (not currently used).
+        ndim: 2 or 3; 2D returns arrays with shape (n, n, 1).
+
+    Returns:
+        Tuple (d, u, v, w, p), each shaped (n, n, n3) with n3 = 1 if ndim=2.
+    """
     """
     Generate 3D Kelvin–Helmholtz initial conditions with smoothed shear layers.
 
     Velocity is along x, varying in y with two tanh interfaces at y=0.25 and y=0.75.
-    Adds a small vy sinusoidal perturbation localized near the shear layers.
+    Adds a small vy sinusoidal perturbation localized near the shear layers.qq
     """
     if random_seed is not None:
         np.random.seed(random_seed)
@@ -104,7 +158,7 @@ def generate_kh_fields(
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Generate 3D Kelvin–Helmholtz ICs (GRAFIC format)")
+    parser = argparse.ArgumentParser(description="Generate Kelvin–Helmholtz ICs (GRAFIC format)")
     parser.add_argument("lvl", type=int, help="Refinement level (grid size is 2^lvl)")
     parser.add_argument("--size", type=float, default=1.0, help="Box size in code units (default: 1.0)")
     parser.add_argument("--ndim", type=int, default=3, help="Output dimensionality: 2 or 3 (default: 3)")
@@ -144,7 +198,7 @@ def main():
     )
 
     # Determine output dir
-    tag = f"ic_khi_{lvl}d{args.ndim}"
+    tag = f"ic_khi_{lvl}_{args.ndim}d"
     if args.outdir is None:
         outdir = Path("ic_khi") / tag
     else:
