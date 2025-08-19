@@ -27,7 +27,7 @@ cd "$IC_DIR"
 
 # --- Generate ICs ---
 echo "Generating ICs in $IC_DIR..."
-python3 "$MYDIR/generate.py" \
+python "$MYDIR/generate.py" \
     "$LVL_MAX" \
     "$SIZE_CU" \
     "$SIZE_PH" \
