@@ -238,3 +238,176 @@ def test_truncated_file_errors(tmp_path):
     r = Grafic(endian="<")
     with pytest.raises(Exception):
         r.read(str(out))
+
+
+# Tests for the new IC generator scripts
+def test_turbulence_parabolic_spectrum(tmp_path):
+    """Test turbulence generation with parabolic spectrum."""
+    import subprocess
+    import sys
+    
+    # Create a simple test case
+    test_dir = tmp_path / "test_turb_parabolic"
+    test_dir.mkdir()
+    
+    # Run turb.py with parabolic spectrum
+    cmd = [
+        sys.executable, "turb.py", "4",  # level 4 (16x16 grid)
+        "--ndim", "2",
+        "--kmin", "2",
+        "--kmax", "8", 
+        "--spectrum", "parabolic",
+        "--vrms", "0.1",
+        "--outdir", str(test_dir)
+    ]
+    
+    result = subprocess.run(cmd, capture_output=True, text=True, cwd=os.path.dirname(os.path.abspath(__file__)))
+    assert result.returncode == 0, f"turb.py failed: {result.stderr}"
+    
+    # Check that output files exist
+    expected_files = ["ic_d", "ic_u", "ic_v", "ic_w", "ic_p"]
+    for filename in expected_files:
+        file_path = test_dir / filename
+        assert file_path.exists(), f"Expected file {filename} not found"
+        assert file_path.stat().st_size > 0, f"File {filename} is empty"
+
+
+def test_turbulence_power_law_spectrum(tmp_path):
+    """Test turbulence generation with power law spectrum."""
+    import subprocess
+    import sys
+    
+    # Create a simple test case
+    test_dir = tmp_path / "test_turb_power_law"
+    test_dir.mkdir()
+    
+    # Run turb.py with power law spectrum
+    cmd = [
+        sys.executable, "turb.py", "4",  # level 4 (16x16 grid)
+        "--ndim", "2",
+        "--kmin", "2",
+        "--kmax", "8",
+        "--spectrum", "power_law", 
+        "--slope", "-2.0",
+        "--vrms", "0.1",
+        "--outdir", str(test_dir)
+    ]
+    
+    result = subprocess.run(cmd, capture_output=True, text=True, cwd=os.path.dirname(os.path.abspath(__file__)))
+    assert result.returncode == 0, f"turb.py failed: {result.stderr}"
+    
+    # Check that output files exist
+    expected_files = ["ic_d", "ic_u", "ic_v", "ic_w", "ic_p"]
+    for filename in expected_files:
+        file_path = test_dir / filename
+        assert file_path.exists(), f"Expected file {filename} not found"
+        assert file_path.stat().st_size > 0, f"File {filename} is empty"
+
+
+def test_turbulence_magnetic_fields(tmp_path):
+    """Test turbulence generation with magnetic fields."""
+    import subprocess
+    import sys
+    
+    # Create a simple test case
+    test_dir = tmp_path / "test_turb_mhd"
+    test_dir.mkdir()
+    
+    # Run turb.py with magnetic fields
+    cmd = [
+        sys.executable, "turb.py", "4",  # level 4 (16x16 grid)
+        "--ndim", "2",
+        "--kmin", "2",
+        "--kmax", "8",
+        "--spectrum", "parabolic",
+        "--vrms", "0.1",
+        "--bx", "0.1",
+        "--by", "0.0",
+        "--bz", "0.0",
+        "--outdir", str(test_dir)
+    ]
+    
+    result = subprocess.run(cmd, capture_output=True, text=True, cwd=os.path.dirname(os.path.abspath(__file__)))
+    assert result.returncode == 0, f"turb.py failed: {result.stderr}"
+    
+    # Check that output files exist including magnetic field files
+    expected_files = ["ic_d", "ic_u", "ic_v", "ic_w", "ic_p", 
+                     "ic_bxleft", "ic_bxright", "ic_byleft", "ic_byright", "ic_bzleft", "ic_bzright"]
+    for filename in expected_files:
+        file_path = test_dir / filename
+        assert file_path.exists(), f"Expected file {filename} not found"
+        assert file_path.stat().st_size > 0, f"File {filename} is empty"
+
+
+def test_turbulence_particles(tmp_path):
+    """Test turbulence generation with particles."""
+    import subprocess
+    import sys
+    
+    # Create a simple test case
+    test_dir = tmp_path / "test_turb_particles"
+    test_dir.mkdir()
+    
+    # Run turb.py with particles
+    cmd = [
+        sys.executable, "turb.py", "4",  # level 4 (16x16 grid)
+        "--ndim", "2",
+        "--kmin", "2",
+        "--kmax", "8",
+        "--spectrum", "parabolic",
+        "--vrms", "0.1",
+        "--particles",
+        "--outdir", str(test_dir)
+    ]
+    
+    result = subprocess.run(cmd, capture_output=True, text=True, cwd=os.path.dirname(os.path.abspath(__file__)))
+    assert result.returncode == 0, f"turb.py failed: {result.stderr}"
+    
+    # Check that output files exist including particle files
+    expected_files = ["ic_d", "ic_u", "ic_v", "ic_w", "ic_p",
+                     "ic_particle_ids", "ic_velcx", "ic_velcy", "ic_velcz"]
+    for filename in expected_files:
+        file_path = test_dir / filename
+        assert file_path.exists(), f"Expected file {filename} not found"
+        assert file_path.stat().st_size > 0, f"File {filename} is empty"
+
+
+def test_spectrum_plotting(tmp_path):
+    """Test the spectrum plotting functionality."""
+    import subprocess
+    import sys
+    
+    # Create test ICs first
+    test_dir = tmp_path / "test_spectrum_plot"
+    test_dir.mkdir()
+    
+    # Generate a simple turbulent IC
+    cmd_generate = [
+        sys.executable, "turb.py", "4",  # level 4 (16x16 grid)
+        "--ndim", "2",
+        "--kmin", "2",
+        "--kmax", "8",
+        "--spectrum", "parabolic",
+        "--vrms", "0.1",
+        "--outdir", str(test_dir)
+    ]
+    
+    result = subprocess.run(cmd_generate, capture_output=True, text=True, 
+                           cwd=os.path.dirname(os.path.abspath(__file__)))
+    assert result.returncode == 0, f"turb.py failed: {result.stderr}"
+    
+    # Test the plotting script
+    cmd_plot = [
+        sys.executable, "plot_spectrum.py", str(test_dir),
+        "--save", str(tmp_path / "test_spectrum.png"),
+        "--no-show"
+    ]
+    
+    result = subprocess.run(cmd_plot, capture_output=True, text=True,
+                           cwd=os.path.dirname(os.path.abspath(__file__)))
+    assert result.returncode == 0, f"plot_spectrum.py failed: {result.stderr}"
+    
+    # Check that the plot was created
+    plot_file = tmp_path / "test_spectrum.png"
+    assert plot_file.exists(), "Spectrum plot was not created"
+    assert plot_file.stat().st_size > 0, "Spectrum plot is empty"
