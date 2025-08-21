@@ -411,3 +411,21 @@ def test_spectrum_plotting(tmp_path):
     plot_file = tmp_path / "test_spectrum.png"
     assert plot_file.exists(), "Spectrum plot was not created"
     assert plot_file.stat().st_size > 0, "Spectrum plot is empty"
+
+
+def test_sine_script():
+    """Test that the sine.py script runs successfully."""
+    import subprocess
+    import sys
+    import os
+    
+    # Run sine.py with non-interactive backend
+    env = os.environ.copy()
+    env['MPLBACKEND'] = 'Agg'  # Use non-interactive backend for testing
+    
+    result = subprocess.run([sys.executable, "sine.py"], 
+                           capture_output=True, text=True,
+                           env=env,
+                           cwd=os.path.dirname(os.path.abspath(__file__)))
+    
+    assert result.returncode == 0, f"sine.py failed: {result.stderr}"
