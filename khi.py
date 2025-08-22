@@ -166,7 +166,7 @@ def main():
     parser.add_argument("--thickness", type=float, default=0.02, help="Shear layer half-thickness (fraction of box)")
     parser.add_argument("--rho_outer", type=float, default=1.0, help="Outer slab density")
     parser.add_argument("--rho_inner", type=float, default=1.0, help="Inner slab density")
-    parser.add_argument("--p0", type=float, default=2.5, help="Uniform pressure")
+    parser.add_argument("--p0", type=float, default=1.0, help="Uniform pressure")
     parser.add_argument("--eps", type=float, default=0.01, help="Perturbation amplitude for vy")
     parser.add_argument("--sigma", type=float, default=0.02, help="Perturbation Gaussian width (fraction of box)")
     parser.add_argument(
@@ -191,6 +191,7 @@ def main():
         density_outer=args.rho_outer,
         density_inner=args.rho_inner,
         pressure0=args.p0,
+        pressure_inner=args.pressure_inner,
         perturb_eps=args.eps,
         perturb_sigma=args.sigma,
         random_seed=args.seed,
